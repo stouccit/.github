@@ -2,7 +2,7 @@
 name: Bug
 about: Something is broken or behaving wrong
 title: "fix: <short imperative summary>"
-labels: ["tech"]
+labels: ["bug"]
 ---
 
 <!--
