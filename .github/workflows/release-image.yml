@@ -1,0 +1,34 @@
+# Reusable: build a Docker image and push it to GHCR + cut a GitHub release.
+# Consumed by the dat-ms-* / ops-ms-dev-alerts / corpus-labeller repos. Pin refs to SHA.
+name: Release (image → GHCR)
+
+on:
+  workflow_call:
+    secrets:
+      GCP_CICD_KEY:
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write            # gh release create
+      packages: write            # push image to GHCR
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.12"
+      - uses: yezz123/setup-uv@v4
+
+      - id: ver
+        uses: stouccit/.github/actions/project-version@dev    # ← pin to SHA
+
+      - uses: stouccit/.github/actions/github-release@dev      # ← pin to SHA
+        with:
+          version: ${{ steps.ver.outputs.version }}
+
+      - uses: stouccit/.github/actions/publish-image-ghcr@dev  # ← pin to SHA
+        with:
+          version: ${{ steps.ver.outputs.version }}
+          gcp-credentials: ${{ secrets.GCP_CICD_KEY }}

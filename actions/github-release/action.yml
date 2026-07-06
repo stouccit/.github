@@ -1,0 +1,30 @@
+name: Create GitHub release if absent
+description: Create a v<version> release with generated notes, unless it already exists.
+inputs:
+  version:
+    description: Validated version (without the leading 'v')
+    required: true
+outputs:
+  created:
+    description: "'true' if a new release was created, 'false' if it already existed"
+    value: ${{ steps.rel.outputs.created }}
+runs:
+  using: composite
+  steps:
+    - id: rel
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+      run: |
+        set -euo pipefail
+        TAG="v${{ inputs.version }}"
+        if gh release view "$TAG" >/dev/null 2>&1; then
+          echo "release $TAG already exists — skipping"
+          echo "created=false" >> "$GITHUB_OUTPUT"
+        else
+          gh release create "$TAG" \
+            --title "${GITHUB_REPOSITORY##*/} $TAG" \
+            --generate-notes
+          echo "created=true" >> "$GITHUB_OUTPUT"
+        fi

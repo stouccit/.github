@@ -1,0 +1,32 @@
+name: Resolve project version
+description: >
+  Read the project version from source, validate it is a single safe token
+  (rejects newline / '=' injection), and expose it as an output.
+inputs:
+  source:
+    description: "Where the version lives: pyproject | package-json"
+    default: pyproject
+outputs:
+  version:
+    description: Validated version string
+    value: ${{ steps.get.outputs.version }}
+runs:
+  using: composite
+  steps:
+    - id: get
+      shell: bash
+      run: |
+        set -euo pipefail
+        case "${{ inputs.source }}" in
+          pyproject)
+            VER=$(uvx --from=toml-cli toml get --toml-path=pyproject.toml project.version) ;;
+          package-json)
+            VER=$(node -p "require('./package.json').version") ;;
+          *)
+            echo "::error::unknown source '${{ inputs.source }}'"; exit 1 ;;
+        esac
+        # Must start X.Y.Z, then only version-safe chars — no newline, '=', space, or '$'.
+        if [[ ! "$VER" =~ ^[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]*$ ]]; then
+          echo "::error::invalid version '$VER'"; exit 1
+        fi
+        printf 'version=%s\n' "$VER" >> "$GITHUB_OUTPUT"
