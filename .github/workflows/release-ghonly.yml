@@ -1,0 +1,28 @@
+# Reusable: cut a GitHub release only (no artifact publish).
+# Consumed by ops-gh-tg-notifier (node) / template-ms. Pin refs to SHA.
+name: Release (GitHub only)
+
+on:
+  workflow_call:
+    inputs:
+      version-source:
+        description: "pyproject | package-json"
+        type: string
+        default: pyproject
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: ver
+        uses: stouccit/.github/actions/project-version@dev   # ← pin to SHA
+        with:
+          source: ${{ inputs.version-source }}
+
+      - uses: stouccit/.github/actions/github-release@dev     # ← pin to SHA
+        with:
+          version: ${{ steps.ver.outputs.version }}

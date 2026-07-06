@@ -1,0 +1,28 @@
+name: Publish wheel to GAR
+description: Authenticate to GCP, build the wheel, and upload it to the stouccit GAR Python repo.
+inputs:
+  gcp-credentials:
+    description: GCP service-account JSON (from a repo secret)
+    required: true
+  repository-url:
+    description: Target GAR Python repository URL
+    default: https://europe-north1-python.pkg.dev/stouccit-dev/stouccit-builds-python/
+runs:
+  using: composite
+  steps:
+    - name: Authenticate to Google Cloud
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: ${{ inputs.gcp-credentials }}
+    - name: Build wheel
+      shell: bash
+      run: uv build
+    - name: Upload to GAR
+      shell: bash
+      run: |
+        set -euo pipefail
+        pip install twine keyrings.google-artifactregistry-auth
+        twine upload \
+          --repository-url "${{ inputs.repository-url }}" \
+          --username oauth2accesstoken \
+          dist/*

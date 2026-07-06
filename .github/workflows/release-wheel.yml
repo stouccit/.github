@@ -1,0 +1,31 @@
+# Reusable: build a Python wheel and publish it to GAR + cut a GitHub release.
+# Consumed by the utils-* repos. Pin the `uses:` refs below to a SHA in production.
+name: Release (wheel → GAR)
+
+on:
+  workflow_call:
+    secrets:
+      GCP_CICD_KEY:
+        required: true
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write            # gh release create; GAR auth is via GCP, not GITHUB_TOKEN
+    steps:
+      - uses: actions/checkout@v4
+      - uses: yezz123/setup-uv@v4
+
+      - id: ver
+        uses: stouccit/.github/actions/project-version@dev   # ← pin to SHA
+
+      - id: rel
+        uses: stouccit/.github/actions/github-release@dev    # ← pin to SHA
+        with:
+          version: ${{ steps.ver.outputs.version }}
+
+      - if: steps.rel.outputs.created == 'true'
+        uses: stouccit/.github/actions/publish-wheel-gar@dev  # ← pin to SHA
+        with:
+          gcp-credentials: ${{ secrets.GCP_CICD_KEY }}
